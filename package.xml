@@ -1,0 +1,88 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>f450</name>
+  <version>0.0.0</version>
+  <description>The f450 package</description>
+
+  <!-- One maintainer tag required, multiple allowed, one person per tag -->
+  <!-- Example:  -->
+  <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
+  <maintainer email="chenc159@todo.todo">chenc159</maintainer>
+
+
+  <!-- One license tag required, multiple allowed, one license per tag -->
+  <!-- Commonly used license strings: -->
+  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
+  <license>TODO</license>
+
+
+  <!-- Url tags are optional, but multiple are allowed, one per tag -->
+  <!-- Optional attribute type can be: website, bugtracker, or repository -->
+  <!-- Example: -->
+  <!-- <url type="website">http://wiki.ros.org/f450</url> -->
+
+
+  <!-- Author tags are optional, multiple are allowed, one per tag -->
+  <!-- Authors do not have to be maintainers, but could be -->
+  <!-- Example: -->
+  <!-- <author email="jane.doe@example.com">Jane Doe</author> -->
+
+  <buildtool_depend>catkin</buildtool_depend>
+    <!-- system dependencies -->
+  <depend>boost</depend>
+  <build_depend>eigen</build_depend>
+  <build_export_depend>eigen</build_export_depend>
+  <build_depend>mavlink</build_depend>
+  <build_export_depend>mavlink</build_export_depend>
+  <build_depend>geographiclib</build_depend>
+  <build_export_depend>geographiclib</build_export_depend>
+  <build_depend>geographiclib-tools</build_depend>
+  <build_export_depend>geographiclib-tools</build_export_depend>
+
+    <!-- packages -->
+  <build_depend>angles</build_depend>
+  <build_depend>cmake_modules</build_depend>
+  <depend>diagnostic_updater</depend>
+  <depend>eigen_conversions</depend>
+  <depend>libmavconn</depend>
+  <depend>pluginlib</depend>
+  <depend>rosconsole_bridge</depend>
+  <depend>roscpp</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_eigen</depend>
+  <exec_depend>message_runtime</exec_depend>
+  <exec_depend>rospy</exec_depend>
+
+    <!-- message packages -->
+  <depend>diagnostic_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>mavros_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geographic_msgs</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
+
+  <test_depend>rosunit</test_depend>
+  <test_depend>gtest</test_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+    <mavros plugin="${prefix}/mavros_plugins.xml" />
+    <rosdoc config="rosdoc.yaml" />
+    <rosindex>
+      <!-- ROSIndex metadata. Wait until <include> will work -->
+      <tags>
+        <tag>uav</tag>
+        <tag>mav</tag>
+        <tag>mavlink</tag>
+        <tag>plugin</tag>
+        <tag>apm</tag>
+        <tag>px4</tag>
+      </tags>
+    </rosindex>
+  </export>
+</package>
