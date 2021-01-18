@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  mavros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -149,6 +150,18 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+
+add_executable(control0 src/control0.cpp)
+add_dependencies(control0 f450_gencpp)
+target_link_libraries(control0 ${catkin_LIBRARIES})
+
+add_executable(set_mode_1 src/set_mode_1.cpp)
+add_dependencies(set_mode_1 f450_gencpp)
+target_link_libraries(set_mode_1 ${catkin_LIBRARIES})
+
+add_executable(set_mode_2 src/set_mode_2.cpp)
+add_dependencies(set_mode_2 f450_gencpp)
+target_link_libraries(set_mode_2 ${catkin_LIBRARIES})
 
 #############
 ## Install ##
