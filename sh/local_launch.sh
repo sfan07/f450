@@ -1,11 +1,11 @@
 #!/bin/bash
 
-LEADER=$false
+# LEADER=$false
 
 SESSION=$1
-HOST_IP=$2
-UAV=$3
-LEADER=$4
+# HOST_IP=$2
+# UAV=$3
+# LEADER=$4
 
 tmuxstart() {
     if [[ $(tmux has-session -t "$1") -eq 0 ]] ; then
@@ -29,24 +29,32 @@ if [ $? -ne 0 ] ; then
     exit 1
 fi
 
-IP=$(sed 's&.*@\(\)&\1&' <<< ${HOST_IP})
+# IP=$(sed 's&.*@\(\)&\1&' <<< ${HOST_IP})
 
-until ping -c1 ${IP} >/dev/null 2>&1; do 
-    echo "Pinging $IP...";
-done
+# until ping -c1 ${IP} >/dev/null 2>&1; do 
+#     echo "Pinging $IP...";
+# done
 
-read -p "Destination $IP reached. Press enter to begin tmux session and ssh to remote vehicle"
+# read -p "Destination $IP reached. Press enter to begin tmux session and ssh to remote vehicle"
 
 tmuxstart ${SESSION}
 
+splitandrun ${SESSION}
+splitandrun ${SESSION}
+# splitandrun ${SESSION} "rostopic list"
+# splitandrun ${SESSION} "rostopic list"
+
+# splitandrun ${SESSION} "roslaunch mavros px4.launch"
+# splitandrun ${SESSION} "rosrun outdoor_gcs outdoor_gcs"
+
 # Split panes then ssh to the vehicle in each pane
-splitandrun ${SESSION} "ssh -X ${HOST_IP}"
-splitandrun ${SESSION} "ssh -X ${HOST_IP}"
+# splitandrun ${SESSION} "ssh -X ${HOST_IP}"
+# splitandrun ${SESSION} "ssh -X ${HOST_IP}"
 # if [ $LEADER ] ; then
 #     splitandrun ${SESSION} "ssh -X ${HOST_IP}"
 # fi
 # ssh to the vehicle in the original pane
-sendcmd 0 "ssh -tt -X ${HOST_IP}"
+# sendcmd 0 "ssh -tt -X ${HOST_IP}"
 
 # Must wait, otherwise panes other than 0 may not initialize properly.
     echo "Wait for panes to fully initialize."
@@ -56,6 +64,14 @@ do
     echo $COUNTDOWN
     sleep 1
 done
+
+sendcmd 0 "rosrun outdoor_gcs outdoor_gcs"
+sendcmd 1 "roslaunch mavros px4.launch"
+sendcmd 2 "rostopic list"
+
+# sendcmd 0 "roslaunch px4_command mavros_multi_drone.launch uavID:=$UAV"
+# sendcmd 1 "roslaunch px4_command px4_multidrone_pos_estimator_outdoor.launch uavID:=$UAV"
+# sendcmd 2 "roslaunch px4_command px4_multidrone_pos_controller_outdoor.launch uavID:=$UAV"
 
 # sendcmd 0 "roslaunch px4_command mavros_multi_drone.launch uavID:=$UAV"
 # sendcmd 1 "roslaunch px4_command px4_multidrone_pos_estimator_pure_vision.launch uavID:=$UAV"
