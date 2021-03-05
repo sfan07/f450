@@ -1,9 +1,11 @@
 #!/bin/bash
 
+LEADER=$false
 
 SESSION=$1
 HOST_IP=$2
 UAV=$3
+LEADER=$4
 
 tmuxstart() {
     if [[ $(tmux has-session -t "$1") -eq 0 ]] ; then
@@ -40,7 +42,9 @@ tmuxstart ${SESSION}
 # Split panes then ssh to the vehicle in each pane
 splitandrun ${SESSION} "ssh -X ${HOST_IP}"
 splitandrun ${SESSION} "ssh -X ${HOST_IP}"
-
+if [ $LEADER ] ; then
+    splitandrun ${SESSION} "ssh -X ${HOST_IP}"
+fi
 # ssh to the vehicle in the original pane
 sendcmd 0 "ssh -tt -X ${HOST_IP}"
 
@@ -53,14 +57,13 @@ do
     sleep 1
 done
 
-sendcmd 0 "roslaunch px4_command mavros_multi_drone.launch uavID:=$UAV fcu_url:=/dev/ttyUSB0:921600"
-sendcmd 1 "roslaunch px4_command px4_multidrone_pos_estimator_outdoor.launch uavID:=$UAV"
-sendcmd 2 "roslaunch px4_command px4_multidrone_pos_controller_outdoor.launch uavID:=$UAV"
-
-# sendcmd 0 "roslaunch px4_command mavros_multi_drone.launch uavID:=$UAV"
-# sendcmd 1 "roslaunch px4_command px4_multidrone_pos_estimator_pure_vision.launch uavID:=$UAV"
-# sendcmd 2 "roslaunch px4_command px4_multidrone_pos_controller.launch uavID:=$UAV"
-
+sendcmd 0 "roslaunch px4_command mavros_multi_drone.launch uavID:=$UAV"
+sendcmd 1 "roslaunch px4_command px4_multidrone_pos_estimator_pure_vision.launch uavID:=$UAV"
+sendcmd 2 "roslaunch px4_command px4_multidrone_pos_controller.launch uavID:=$UAV"
+if [ $LEADER ] ; then
+    sendcmd 3 "roslaunch px4_command px4_interdrone_communication.launch uavID:=$UAV"
+fi
 ## Create the windows on which each node or .launch file is going to run
 
 gnome-terminal --tab -- tmux attach -t ${SESSION}
+
