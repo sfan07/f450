@@ -4,26 +4,22 @@
 Code modified based one
 https://github.com/tilk/ntrip_ros
 https://github.com/ros-agriculture/ntrip_ros
+https://github.com/dayjaby/ntrip_ros/blob/master/scripts/ntripclient.py
 '''
-
 
 import rospy
 from datetime import datetime
-
-#from nmea_msgs.msg import Sentence
-#from rtcm_msgs.msg import Message
-# from mavros.msg import RTMC
-from f450.msg import RTCM
-
 from base64 import b64encode
 from threading import Thread
-
 from httplib import HTTPConnection
 from httplib import IncompleteRead
-
 ''' This is to fix the IncompleteRead error
     http://bobrochel.blogspot.com/2010/11/bad-servers-chunked-encoding-and.html'''
 import httplib
+
+from f450.msg import RTCM # RTCM.msg from mavros
+
+
 # def patch_http_response_read(func):
 #     def inner(*args):
 #         try:
@@ -40,7 +36,33 @@ class ntripconnect(Thread):
         self.stop = False
 
     # def run(self):
+    #     headers = {
+    #         'Ntrip-Version': 'Ntrip/2.0',
+    #         'User-Agent': 'NTRIP ntrip_ros',
+    #         'Connection': 'close',
+    #         'Authorization': 'Basic ' + b64encode(self.ntc.ntrip_user + ':' + self.ntc.ntrip_pass)
+    #     }
+    #     connection = HTTPConnection(self.ntc.ntrip_server)
+    #     connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga, headers)
+        
+    #     response = connection.getresponse()
+    #     if response.status != 200: raise Exception("blah")
+    #     buf = ""
+    #     rmsg = RTCM()
+    #     while not self.stop:
+    #         data = response.read(100) #100
+    #         pos = data.find('\r\n')
+    #         if pos != -1:
+    #             rmsg.data = buf + data[:pos]
+    #             rmsg.header.seq += 1
+    #             rmsg.header.stamp = rospy.get_rostime()
+    #             buf = data[pos+2:]
+    #             self.ntc.pub.publish(rmsg)
+    #             print(str(rmsg.header.seq) + ", message published")
+    #         else: buf += data
+    #     connection.close()
 
+    # def run(self):
     #     headers = {
     #         'Ntrip-Version': 'Ntrip/2.0',
     #         'User-Agent': 'NTRIP ntrip_ros',
@@ -52,21 +74,9 @@ class ntripconnect(Thread):
     #     response = connection.getresponse()
     #     if response.status != 200: raise Exception("blah")
     #     buf = ""
-    #     rmsg = Message()
+    #     rmsg = RTCM()
     #     restart_count = 0
     #     while not self.stop:
-    #         '''
-    #         data = response.read(100)
-    #         pos = data.find('\r\n')
-    #         if pos != -1:
-    #             rmsg.message = buf + data[:pos]
-    #             rmsg.header.seq += 1
-    #             rmsg.header.stamp = rospy.get_rostime()
-    #             buf = data[pos+2:]
-    #             self.ntc.pub.publish(rmsg)
-    #         else: buf += data
-    #         '''
-
     #         ''' This now separates individual RTCM messages and publishes each one on the same topic '''
     #         data = response.read(1)
     #         if len(data) != 0:
@@ -83,12 +93,13 @@ class ntripconnect(Thread):
     #                 for x in range(cnt):
     #                     data = response.read(1)
     #                     buf += data
-    #                 rmsg.message = buf
+    #                 rmsg.data = buf
     #                 rmsg.header.seq += 1
     #                 rmsg.header.stamp = rospy.get_rostime()
     #                 self.ntc.pub.publish(rmsg)
     #                 buf = ""
-    #             else: print (data)
+    #             else: 
+    #                 print (data)
     #         else:
     #             ''' If zero length data, close connection and reopen it '''
     #             restart_count = restart_count + 1
@@ -99,7 +110,6 @@ class ntripconnect(Thread):
     #             response = connection.getresponse()
     #             if response.status != 200: raise Exception("blah")
     #             buf = ""
-
     #     connection.close()
 
     def run(self):
@@ -110,6 +120,7 @@ class ntripconnect(Thread):
             'Authorization': 'Basic ' + b64encode(self.ntc.ntrip_user + ':' + self.ntc.ntrip_pass)
         }
         connection = HTTPConnection(self.ntc.ntrip_server)
+        now = datetime.utcnow()
         connection.request('GET', '/'+self.ntc.ntrip_stream, self.ntc.nmea_gga, headers)
         
         response = connection.getresponse()
@@ -117,19 +128,25 @@ class ntripconnect(Thread):
         buf = ""
         rmsg = RTCM()
         while not self.stop:
-            data = response.read(100) #100
-            pos = data.find('\r\n')
-            if pos != -1:
-                rmsg.data = buf + data[:pos]
-                rmsg.header.seq += 1
-                rmsg.header.stamp = rospy.get_rostime()
-                buf = data[pos+2:]
-                self.ntc.pub.publish(rmsg)
-                print(str(rmsg.header.seq) + ", message published")
-            else: buf += data
-        
+            data = response.read(1)
+            if data!=chr(211):
+                continue
+            l1 = ord(response.read(1))
+            l2 = ord(response.read(1))
+            pkt_len = ((l1&0x3)<<8)+l2
+    
+            pkt = response.read(pkt_len)
+            parity = response.read(3)
+            if len(pkt) != pkt_len:
+                rospy.logerr("Length error: {} {}".format(len(pkt), pkt_len))
+                continue
+            rmsg.header.seq += 1
+            rmsg.header.stamp = rospy.get_rostime()
+            rmsg.data = data + chr(l1) + chr(l2) + pkt + parity
+            self.ntc.pub.publish(rmsg)
         connection.close()
-        print("connection closed")
+
+
 
 class ntripclient:
     def __init__(self):
