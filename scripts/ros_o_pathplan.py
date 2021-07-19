@@ -123,7 +123,7 @@ class O_PathPlan(object):
 
 if __name__ == '__main__':
 
-      rospy.init_node('ros_pathplan', anonymous=True)
+      rospy.init_node('ros_o_pathplan', anonymous=True)
       dt = 1.0/15
       pathplan_run = O_PathPlan(dt)
       rospy.Timer(rospy.Duration(dt), pathplan_run.iteration)
