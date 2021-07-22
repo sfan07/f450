@@ -21,28 +21,33 @@ def navigational_feedback(host, c1, c2):
 
 def repulsive_force(host, agents, RG, ra, rx_mat, ry_mat, height_mat):
     f = np.array([0.0, 0.0, 0.0])
-    r_alpha = ra
-    # r_alpha, h_alpha = Config.r_alpha, Config.h_alpha
-    # #RG = Config.RepulsiveGradient
-    # neighbors, rx_mat, ry_mat, height_mat = get_neighbors(host, agents, rx_mat, ry_mat, height_mat)
 
-    # for neighbor in neighbors:
-    #     dist_v = neighbor.pos_global_frame - host.pos_global_frame
-    #     dist, distxy = np.linalg.norm(dist_v), np.linalg.norm(dist_v[:2])
-    #     if not Config.CYL_MODEL: # Spherical model
-    #         ForceComponent = -RG*bump_fn(dist/r_alpha) * np.square(dist-r_alpha)
-    #         f += ForceComponent * (dist_v)/dist
-    #     else: # Cylindrical model
-    #         if abs(dist_v[2]) > height_mat[host.id][neighbor.id] and Config.TEST_DW_F and Config.ADAPT_H:
-    #             continue
-    #         else:
-    #             h_alpha = height_mat[host.id][neighbor.id]
-    #         ForceComponent_xy = -RG*bump_fn(distxy/r_alpha) * np.square(distxy-r_alpha)
-    #         ForceComponent_z = -RG*bump_fn(abs(dist_v[2])/h_alpha) * np.square(abs(dist_v[2])-h_alpha)
+    if host.id == 0:
+        return f
 
-    #         f[:2] += ForceComponent_xy*dist_v[:2]/dist
-    #         f[2] += ForceComponent_z*dist_v[2]/dist
-    # print(height_mat)
+    # r_alpha = ra
+    r_alpha, h_alpha = Config.r_alpha, Config.h_alpha
+    # RG = Config.RepulsiveGradient
+    # print(RG)
+    neighbors, rx_mat, ry_mat, height_mat = get_neighbors(host, agents, rx_mat, ry_mat, height_mat)
+
+    for neighbor in neighbors:
+        dist_v = neighbor.pos_global_frame - host.pos_global_frame
+        dist, distxy = np.linalg.norm(dist_v), np.linalg.norm(dist_v[:2])
+        if not Config.CYL_MODEL: # Spherical model
+            ForceComponent = -RG*bump_fn(dist/r_alpha) * np.square(dist-r_alpha)
+            f += ForceComponent * (dist_v)/dist
+        else: # Cylindrical model
+            if abs(dist_v[2]) > height_mat[host.id][neighbor.id] and Config.TEST_DW_F and Config.ADAPT_H:
+                continue
+            else:
+                h_alpha = height_mat[host.id][neighbor.id]
+            ForceComponent_xy = -RG*bump_fn(distxy/r_alpha) * np.square(distxy-r_alpha)
+            ForceComponent_z = -RG*bump_fn(abs(dist_v[2])/h_alpha) * np.square(abs(dist_v[2])-h_alpha)
+
+            f[:2] += ForceComponent_xy*dist_v[:2]/dist
+            f[2] += ForceComponent_z*dist_v[2]/dist
+        print(host.id, f)
     return f
 
 def new_repulsive_force(dist_v, rx, ry, height):
@@ -76,6 +81,9 @@ def get_neighbors(host, agents, rx_mat, ry_mat, height_mat):
         height_mat = get_adp_height(host, neighbors, agents, height_mat)
     elif (Config.CYL_MODEL and Config.ADAPT_RH): # Adaptive Radius and Height Model
         rx_mat, ry_mat, height_mat = get_adp_radheight(host, neighbors, rx_mat, ry_mat, height_mat)
+    elif Config.CYL_MODEL:
+        for other_agent in agents:
+            height_mat[host.id][other_agent.id] = height_mat[other_agent.id][host.id] = Config.h_alpha
 
     return neighbors, rx_mat, ry_mat, height_mat
 

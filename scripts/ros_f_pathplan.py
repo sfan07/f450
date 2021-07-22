@@ -32,7 +32,7 @@ class F_PathPlan(object):
 
     def __init__(self, dt):
 
-        print("FLOCK")
+        print("FLOCK!!")
 
         self.dt = dt
         self.change_time = rospy.Time.now()
@@ -47,7 +47,7 @@ class F_PathPlan(object):
 
         self.agents = []
         self.c1, self.c2, self.RG = 10.0, 10.0, 50.0
-        self.r_alpha, self.MaxAcc, self.MaxVelo = 3.0, 10.0, 10.0 
+        self.r_alpha, self.MaxAcc, self.MaxVelo = 1.0, 10.0, 10.0 
 
         self.pathplan_pub_msg, self.pathplan_pub_msg_nxt = PathPlan(), PathPlan()
         rospy.Subscriber("/uavs/pathplan", PathPlan, self.pathplan_callback)
@@ -61,8 +61,14 @@ class F_PathPlan(object):
         self.cur_pos = np.asarray(msg.cur_position)
         self.cur_vel = np.asarray(msg.cur_velocity)
         self.des_pos = np.asarray(msg.des_position)
-        self.c1, self.c2, self.RG = msg.params[0], msg.params[1], msg.params[2]
-        self.r_alpha, self.MaxAcc, self.MaxVelo = msg.params[3], msg.params[4], msg.params[5]
+        if (msg.params[0]!= 0.0): self.c1 = msg.params[0]
+        if (msg.params[1]!= 0.0): self.c2 = msg.params[1]
+        if (msg.params[2]!= 0.0): self.RG = msg.params[2]
+        if (msg.params[3]!= 0.0): self.r_alpha = msg.params[3]
+        if (msg.params[4]!= 0.0): self.MaxAcc = msg.params[4]
+        if (msg.params[5]!= 0.0): self.MaxVelo = msg.params[5]
+        # self.c1, self.c2, self.RG = msg.params[0], msg.params[1], msg.params[2]
+        # self.r_alpha, self.MaxAcc, self.MaxVelo = msg.params[3], msg.params[4], msg.params[5]
 
     def update_nxtpos(self):
         self.pathplan_pub_msg_nxt.header.stamp = rospy.Time.now()
@@ -116,7 +122,7 @@ class F_PathPlan(object):
 
                 # self.agents[j].update_state(force, self.dt, self.MaxAcc, self.MaxVelo)
                 j+=1
-                print(force, dw_f)
+                # print(force, dw_f)
 
                 force[0] = max(min(force[0], self.MaxAcc), -self.MaxAcc)
                 force[1] = max(min(force[1], self.MaxAcc), -self.MaxAcc)
@@ -135,7 +141,7 @@ class F_PathPlan(object):
 if __name__ == '__main__':
 
       rospy.init_node('ros_f_pathplan', anonymous=True)
-      dt = 1.0/15
+      dt = 1.0/15*3
       pathplan_run = F_PathPlan(dt)
       rospy.Timer(rospy.Duration(dt), pathplan_run.iteration)
       rospy.spin()
