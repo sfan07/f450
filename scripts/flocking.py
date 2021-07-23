@@ -22,14 +22,14 @@ def navigational_feedback(host, c1, c2):
 def repulsive_force(host, agents, RG, ra, rx_mat, ry_mat, height_mat):
     f = np.array([0.0, 0.0, 0.0])
 
-    if host.id == 0:
-        return f
+    # if host.id == 0:
+    #     return f
 
-    # r_alpha = ra
-    r_alpha, h_alpha = Config.r_alpha, Config.h_alpha
+    r_alpha = ra
+    # r_alpha, h_alpha = Config.r_alpha, Config.h_alpha
     # RG = Config.RepulsiveGradient
     # print(RG)
-    neighbors, rx_mat, ry_mat, height_mat = get_neighbors(host, agents, rx_mat, ry_mat, height_mat)
+    neighbors, rx_mat, ry_mat, height_mat = get_neighbors(host, agents, ra, rx_mat, ry_mat, height_mat)
 
     for neighbor in neighbors:
         dist_v = neighbor.pos_global_frame - host.pos_global_frame
@@ -58,24 +58,20 @@ def new_repulsive_force(dist_v, rx, ry, height):
         f[2] = -Config.MaxAcc*adp_bump_fn(abs(dist_v[2])/height, Config.h_alpha_min/height)*abs(dist_v[2])/dist_v[2]
     return f
 
-def get_neighbors(host, agents, rx_mat, ry_mat, height_mat):
+def get_neighbors(host, agents, ra, rx_mat, ry_mat, height_mat):
     neighbors = []
-    r_alpha, h_alpha = Config.r_alpha, Config.h_alpha #max
-    # r_min, r_max, h_min, h_max = Config.r_alpha_min, Config.r_alpha_max, Config.h_alpha_min, Config.h_alpha_max
-    # tau_start, host_z = np.inf, np.inf
-    # pos_i, goal_i, vel_i = host.pos_global_frame, host.goal_global_frame, host.vel_global_frame
+    r_alpha, h_alpha = ra, Config.h_alpha #max
+    # r_alpha, h_alpha = Config.r_alpha, Config.h_alpha #max
     for other_agent in agents:
         if other_agent.id == host.id:
             continue
         dist_v = other_agent.pos_global_frame - host.pos_global_frame
-        # vel_v = other_agent.vel_global_frame - vel_i
         dist, distxy = np.linalg.norm(dist_v), np.linalg.norm(dist_v[:2])
 
         # Spherical and Cylindrical model
         if ((not Config.CYL_MODEL and dist < r_alpha) or 
             (Config.CYL_MODEL and distxy < r_alpha and abs(dist_v[2]) < h_alpha)):
             neighbors.append(other_agent)
-            # height_mat[host.id][other_agent.id] = height_mat[other_agent.id][host.id] = h_alpha # default as max
 
     if (Config.CYL_MODEL and Config.TEST_DW_F and Config.ADAPT_H): # Adaptive Height Model Only
         height_mat = get_adp_height(host, neighbors, agents, height_mat)
@@ -90,7 +86,7 @@ def get_neighbors(host, agents, rx_mat, ry_mat, height_mat):
 
 def get_adp_height(host, neighbors, agents, height_mat):
     dw_neighbor, tau_start, host_z = host, np.inf, np.inf
-    r_alpha, h_alpha = Config.r_alpha, Config.h_alpha # default as max
+    r_alpha = Config.r_alpha
     h_min, h_max = Config.h_alpha_min, Config.h_alpha_max
     pos_i, goal_i, vel_i = host.pos_global_frame, host.goal_global_frame, host.vel_global_frame
 
@@ -117,7 +113,6 @@ def get_adp_height(host, neighbors, agents, height_mat):
                 vz -= (dw_a - max(min(f_n, Config.MaxAcc), -Config.MaxAcc))*0.01
                 host_z += vz*0.01
                 t += 0.01
-
 
     if dw_neighbor.id != host.id:
         pos_j = dw_neighbor.pos_global_frame

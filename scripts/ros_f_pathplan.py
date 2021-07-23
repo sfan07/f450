@@ -37,16 +37,16 @@ class F_PathPlan(object):
         self.dt = dt
         self.change_time = rospy.Time.now()
 
-        self.cur_pos = np.zeros((15)) # max 5 drones, each with xyz
-        self.cur_vel = np.zeros((15))
-        self.des_pos = np.zeros((15))
+        self.agents_num, self.max_agents_num = 0, 9
+        self.cur_pos = np.zeros((3*self.max_agents_num)) # max 5 drones, each with xyz
+        self.cur_vel = np.zeros((3*self.max_agents_num))
+        self.des_pos = np.zeros((3*self.max_agents_num))
 
         self.start_sim = False
-        self.uavs_id = [False,False,False,False,False]
-        self.agents_num, self.max_agents_num = 0, 5
+        self.uavs_id = [False,False,False,False,False,False,False,False,False]
 
         self.agents = []
-        self.c1, self.c2, self.RG = 10.0, 10.0, 50.0
+        self.c1, self.c2, self.RG = 10.0, 10.0, 10000.0
         self.r_alpha, self.MaxAcc, self.MaxVelo = 1.0, 10.0, 10.0 
 
         self.pathplan_pub_msg, self.pathplan_pub_msg_nxt = PathPlan(), PathPlan()
