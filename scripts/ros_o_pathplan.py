@@ -32,13 +32,13 @@ class O_PathPlan(object):
 
         self.dt = dt
         self.change_time = rospy.Time.now()
+        self.agents_num, self.max_agents_num = 0, 9
 
-        self.cur_pos = np.zeros((15)) # max 5 drones, each with xyz
-        self.des_pos = np.zeros((15))
+        self.cur_pos = np.zeros((3*self.max_agents_num)) # max 5 drones, each with xyz
+        self.des_pos = np.zeros((3*self.max_agents_num))
 
         self.start_sim = False
-        self.uavs_id = [False,False,False,False,False]
-        self.agents_num, self.max_agents_num = 0, 5
+        self.uavs_id = [False,False,False,False,False,False,False,False,False]
         self.radius, self.neighborDist = 1.0, 3.0
         self.timeHorizon, self.MaxVelo, self.velocity = 5.0, 10.0, (0,0,0)
 
@@ -123,7 +123,7 @@ class O_PathPlan(object):
 
 if __name__ == '__main__':
 
-      rospy.init_node('ros_pathplan', anonymous=True)
+      rospy.init_node('ros_o_pathplan', anonymous=True)
       dt = 1.0/15
       pathplan_run = O_PathPlan(dt)
       rospy.Timer(rospy.Duration(dt), pathplan_run.iteration)
