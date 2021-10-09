@@ -81,3 +81,24 @@ class Config:
     ZERO_NAV_F = True
     ZERO_NAV_F = False
 
+    '''distance between vertices and the assigned target position'''
+    l = 1
+    look_ahead_num = 3
+    # look_ahead_dt = 0.1
+    look_ahead_dt = 1.0/15
+
+    '''Drone dynamics'''
+    droneSideLength = 0.33*2
+
+    '''pso parameters'''
+    MaxIt_pso = 20 # Maximum Number of Iterations
+    nPop_pso = 20 # population size (swarm size)
+    w_pso = 1 # inertia weight
+    wdamp_pso = 0.98 # inertia weight damping ratio
+    c1_pso = 1.5 # personal learning coefficient
+    c2_pso = 2 # Global Learning Coefficient
+    alpha_pso = 0.1 #adjusting velocity limits
+
+    '''accl limits and vel limits'''
+    MaxAcc, MaxVelo = 10.0, 10.0 
+
