@@ -488,7 +488,8 @@ class path_generation():
         Pos_XYZ = np.stack((x_temp, y_temp, z_temp))
         k = nVar+2
         TS = np.linspace(0,1,k)
-        tt = np.linspace(0,1,100)
+        # tt = np.linspace(0,1,100)
+        tt = np.linspace(0,1,Config.Seperate)
         n = len(tt) # number of points to be seperated
         spl = interp1d(TS, Pos_XYZ[:], kind='cubic')
         xxyyzz = spl(tt)
@@ -529,14 +530,14 @@ class path_generation():
                 if(math.isnan(Violation)):
                     print("STOP")
                 
-            xobs.extend(xx.tolist()[9:90])
-            yobs.extend(yy.tolist()[9:90])
+            xobs.extend(xx.tolist()[9:(Config.Seperate-10)])
+            yobs.extend(yy.tolist()[9:(Config.Seperate-10)])
             # zobs.extend((zz[9:90]+(self.model.obstBuffer+0.15)).tolist()) # agent viewed as cylinderical shape
-            zobs.extend((zz[9:90]).tolist())
+            zobs.extend((zz[9:(Config.Seperate-10)]).tolist())
             # robs.extend((self.model.obstBuffer+0.15)*np.ones(81)) # agent viewed as cylinderical shape
-            robs.extend(0.15/2*np.ones(81)) #agent side length = 0.15m
+            robs.extend(0.15/2*np.ones(Config.Seperate-10-9)) #agent side length = 0.15m
             # hobs.extend((self.model.obstBuffer+0.15)*2*np.ones(81)) # agent viewed as cylinderical shape
-            hobs.extend(0.15*np.ones(81))
+            hobs.extend(0.15*np.ones(Config.Seperate-10-9))
 
 
         self.sol2.update_param(TS, XS, YS, ZS, tt, temp_xx, temp_yy, temp_zz, L, Violation)

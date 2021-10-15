@@ -115,7 +115,7 @@ class PSO_PathPlan(object):
             for i in range(self.max_agents_num):
                 if (self.uavs_id[i] and len(self.agent_pos) != self.agents_num):
                     if j == 0:
-                        self.target_pos.append(np.array([self.cur_pos[i*3], self.cur_pos[i*+1], self.cur_pos[i*3+2]],dtype='float64'))
+                        self.target_pos.append(np.array([self.cur_pos[i*3], self.cur_pos[i*3+1], self.cur_pos[i*3+2]],dtype='float64'))
                         j += 1
                     else:
                         self.agent_pos.append(np.array([self.cur_pos[i*3], self.cur_pos[i*3+1], self.cur_pos[i*3+2]],dtype='float64'))
@@ -123,6 +123,7 @@ class PSO_PathPlan(object):
                         self.agent_acc.append(np.array([self.cur_acc[i*3], self.cur_acc[i*3+1], self.cur_acc[i*3+2]],dtype='float64'))
                         self.agent_ang.append(np.array([self.cur_ang[i*3], self.cur_ang[i*3+1], self.cur_ang[i*3+2]],dtype='float64'))
             nxt = []
+            assigned_vertices = []
             
             self.agent_pos = np.array(self.agent_pos).reshape(len(self.agent_pos),3)
             self.target_pos = np.array(self.target_pos).reshape(1,3)
@@ -130,8 +131,7 @@ class PSO_PathPlan(object):
             self.agent_acc = np.array(self.agent_acc).reshape(len(self.agent_pos),3)
             self.agent_ang = np.array(self.agent_ang).reshape(len(self.agent_pos),3)
             self.sim = sim_3D_static_target.Sim2D(self.agent_pos, self.agent_vel, self.agent_acc, self.agent_ang, self.target_pos, obs_init=None, dt = 0.5)
-            agent_nxt = self.sim.run(Config.l, Config.look_ahead_num, Config.look_ahead_dt)
-            # print(nxt)
+            agent_nxt, agent_assigned_vertices = self.sim.run(Config.l, Config.look_ahead_num, Config.look_ahead_dt)
 
             targetskipped = False
             
@@ -142,51 +142,19 @@ class PSO_PathPlan(object):
                         targetskipped = True
                         j = 0
                         nxt.extend([self.des_pos[agent*3], self.des_pos[agent*3+1], self.des_pos[agent*3+2]])
+                        assigned_vertices.extend([self.des_pos[agent*3], self.des_pos[agent*3+1], self.des_pos[agent*3+2]])
                         continue
                     else:
                         nxt.extend(agent_nxt[j].tolist())
+                        assigned_vertices.extend(agent_assigned_vertices[j].tolist())
                         j += 1
                 else:
                     nxt.extend([0,0,0])
+                    assigned_vertices.extend([0,0,0])
                         
-                # print(nxt)
             self.pathplan_pub_msg_nxt.nxt_position = list(nxt)
-            print(f'next waypoint nxt is {nxt}')
+            self.pathplan_pub_msg_nxt.des_position = list(assigned_vertices)
             self.publish_msg()
-
-
-        # if (self.start_sim and rospy.Time.now()-self.change_time > rospy.Duration(secs=5)):
-        #     self.change_time = rospy.Time.now()
-            # self.pathplan_pub_msg_nxt.start, self.start_sim = False, False
-                    # self.agents.append(agent.Agent(self.cur_pos[i*3], self.cur_pos[i*3+1], self.cur_pos[i*3+2],
-                        # self.des_pos[i*3], self.des_pos[i*3+1], self.des_pos[i*3+2], i))
-        # print(len(self.target_pos))
-        # nxt = []
-        # if (self.agents_num == (len(self.agent_pos)+1) and len(self.target_pos) == 3):
-        #     self.agent_pos = np.array(self.agent_pos).reshape(len(self.agent_pos),3)
-        #     self.target_pos = np.array(self.target_pos).reshape(1,3)
-        #     self.agent_vel = np.array(self.agent_vel).reshape(len(self.agent_pos),3)
-        #     self.agent_acc = np.array(self.agent_acc).reshape(len(self.agent_pos),3)
-        #     self.agent_ang = np.array(self.agent_ang).reshape(len(self.agent_pos),3)
-        #     self.sim = sim_3D_static_target.Sim2D(self.agent_pos, self.agent_vel, self.agent_acc, self.agent_ang, self.target_pos, dt = 0.5)
-        #     agent_nxt = self.sim.run(Config.l, Config.look_ahead_num, Config.look_ahead_dt)
-        #     print(nxt)
-
-            # j = 0
-            # for agent in range(self.max_agents_num):
-            #     print(nxt)
-
-            #     if (self.uavs_id[agent]):
-            #         nxt.extend(*agent_nxt[j])
-            #         j += 1
-            #         print(nxt)
-            #     else:
-            #         nxt.extend([0,0,0])
-            # self.pathplan_pub_msg_nxt.nxt_position = list(nxt)
-
-                # self.Move_One_Step()
-                # self.update_nxtpos()
-            # self.publish_msg()
 
     def Move_One_Step(self):
         forces, nxt, j = [], [], 0

@@ -232,6 +232,7 @@ class Sim2D():
         # get vertex position and vectors
         # print(self.target_pos)
         self.vertex_pos = self.get_vertices(l)
+        # print(f'after get vertices, is {self.vertex_pos}')
         self.vertex_vec = normalize(self.vertex_pos-self.target_pos, axis = 1, norm = 'l2')
 
         # height of the agents, starting from 0, each row is [z, vz]
@@ -292,7 +293,7 @@ class Sim2D():
                 # C = self.rotation_from_axis_angle(axis[j], 0.02*angular_diff[j])
                 # v = C@self.agent_vec[j]/norm(C@self.agent_vec[j])
                 # waypoint = self.target_pos+(d_vertex_target[j]+0.98*radial_diff[j])*v
-                waypoint = np.array([xx[1*n+1+j*100],yy[1*n+1+j*100],zz[1*n+1+j*100]])
+                waypoint = np.array([xx[1*n+1+j*Config.Seperate],yy[1*n+1+j*Config.Seperate],zz[1*n+1+j*Config.Seperate]])
                 # clip the height to be between 0.1m and 2.0m
                 # waypoint[-1] = np.clip(waypoint[-1], 0.1, 2.0)
                 # populates look ahead points to be interpolated
@@ -326,14 +327,17 @@ class Sim2D():
             vx_pso, vy_pso, vz_pso = vx_interp(self.look_ahead_num//2*self.look_ahead_dt), vy_interp(self.look_ahead_num//2*self.look_ahead_dt), vz_interp(self.look_ahead_num//2*self.look_ahead_dt)
             v_pso[j] = np.array([vx_pso, vy_pso, vz_pso])
             ax_pso, ay_pso, az_pso = ax_interp(self.look_ahead_num//2*self.look_ahead_dt), ay_interp(self.look_ahead_num//2*self.look_ahead_dt), az_interp(self.look_ahead_num//2*self.look_ahead_dt)
-            print(f'{waypt} compared with {self.agent_pos[j,0]+vx_pso*self.look_ahead_dt+1/2*ax_pso*self.look_ahead_dt*self.look_ahead_dt} {self.agent_pos[j,1]+vy_pso*self.look_ahead_dt+1/2*ay_pso*self.look_ahead_dt*self.look_ahead_dt} {self.agent_pos[j,2]+vz_pso*self.look_ahead_dt+1/2*az_pso*self.look_ahead_dt*self.look_ahead_dt}')
+            # print(f'{waypt} compared with {self.agent_pos[j,0]+vx_pso*self.look_ahead_dt+1/2*ax_pso*self.look_ahead_dt*self.look_ahead_dt} {self.agent_pos[j,1]+vy_pso*self.look_ahead_dt+1/2*ay_pso*self.look_ahead_dt*self.look_ahead_dt} {self.agent_pos[j,2]+vz_pso*self.look_ahead_dt+1/2*az_pso*self.look_ahead_dt*self.look_ahead_dt}')
             
             agent_input[0, j] = self.agent_ang[j,0] #deg !!!!!!
             agent_input[1, j] = self.agent_ang[j,1]  #deg !!!!!!!!
 
             if self.agent_h[j, 0] < 0.2:
                 collision_acc[j, 2] = np.abs(collision_acc[j, 2])
-            
+            # # if without collision_acc
+            # collision_acc[j,0] = 0
+            # collision_acc[j,1] = 0
+            # collision_acc[j,2] = 0
             accx[j] = (max(min(ax_pso+collision_acc[j,0], Config.MaxAcc), -Config.MaxAcc))
             accy[j] = (max(min(ay_pso+collision_acc[j,1], Config.MaxAcc), -Config.MaxAcc))
             accz[j] = (max(min(ay_pso+collision_acc[j,2], Config.MaxAcc), -Config.MaxAcc))
@@ -357,11 +361,13 @@ class Sim2D():
         for agent in range(self.num_agents):
             vel[agent,2] += downwash_acc[agent]*self.look_ahead_dt
         self.agent_pos_after = self.agent_pos + vel*self.look_ahead_dt
-        print(f'self.agent_pos is {self.agent_pos} and velocity is {vel}')
-        print(f'self.agent_pos_after is {self.agent_pos_after}')
-
+        # print(f'self.agent_pos is {self.agent_pos} and velocity is {vel}')
+        # print(f'self.agent_pos_after is {self.agent_pos_after}')
+        print(f'assigned vertices is {self.assigned_vertex_pos}')
+        # assigned_vertices = np.hstack(self.assigned_vertex_pos)
+        # assigned_vertices = np.hstack(self.assigned_vertex_pos)
         # self.vis(i=0)
-        return self.agent_pos_after
+        return self.agent_pos_after, self.assigned_vertex_pos
         
     def get_dw_acc(self, dw_flag, acc_xyz, neighbors_pos, agent_coord, agent_input):
         multi = 10
@@ -516,7 +522,7 @@ if __name__ == '__main__':
     agent_acc = np.zeros((len(agent_init[0]),3))
     # # case 1/2/3/4
     target_init = np.array([1.0, 0.5, 0.0, 0.0]).T
-    target_pos = np.hstack((target_init.T[:2],1))
+    target_pos = np.hstack((target_init.T[:2],1)).reshape(1,3)
     agent_ang = np.zeros((4, 2))
 
     # case1/2

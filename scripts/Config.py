@@ -102,3 +102,5 @@ class Config:
     '''accl limits and vel limits'''
     MaxAcc, MaxVelo = 10.0, 10.0 
 
+    '''adjust this number to influence hunting speed, must larger than 20'''
+    Seperate = 21
