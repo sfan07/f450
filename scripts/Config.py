@@ -85,7 +85,7 @@ class Config:
     l = 1
     look_ahead_num = 3
     # look_ahead_dt = 0.1
-    look_ahead_dt = 1.0/15
+    look_ahead_dt = 1.0/15*1/2
 
     '''Drone dynamics'''
     droneSideLength = 0.33*2
@@ -103,4 +103,7 @@ class Config:
     MaxAcc, MaxVelo = 10.0, 10.0 
 
     '''adjust this number to influence hunting speed, must larger than 20'''
-    Seperate = 21
+    Seperate = 7
+
+    '''adjust downwash acceleration, multi*dw_acc'''
+    multi = 10

@@ -530,14 +530,19 @@ class path_generation():
                 if(math.isnan(Violation)):
                     print("STOP")
                 
-            xobs.extend(xx.tolist()[9:(Config.Seperate-10)])
-            yobs.extend(yy.tolist()[9:(Config.Seperate-10)])
+            # xobs.extend(xx.tolist()[9:(Config.Seperate-10)]) #Seperate was 100 
+            xobs.extend(xx.tolist()[2:(Config.Seperate-2)])
+            # yobs.extend(yy.tolist()[9:(Config.Seperate-10)])
+            yobs.extend(yy.tolist()[2:(Config.Seperate-2)])
             # zobs.extend((zz[9:90]+(self.model.obstBuffer+0.15)).tolist()) # agent viewed as cylinderical shape
-            zobs.extend((zz[9:(Config.Seperate-10)]).tolist())
+            # zobs.extend((zz[9:(Config.Seperate-10)]).tolist())
+            zobs.extend((zz[2:(Config.Seperate-2)]).tolist())
             # robs.extend((self.model.obstBuffer+0.15)*np.ones(81)) # agent viewed as cylinderical shape
-            robs.extend(0.15/2*np.ones(Config.Seperate-10-9)) #agent side length = 0.15m
+            robs.extend(0.15/2*np.ones(Config.Seperate-2-2)) #agent side length = 0.15m
+            # robs.extend(0.15/2*np.ones(Config.Seperate-10-9)) #agent side length = 0.15m
             # hobs.extend((self.model.obstBuffer+0.15)*2*np.ones(81)) # agent viewed as cylinderical shape
-            hobs.extend(0.15*np.ones(Config.Seperate-10-9))
+            # hobs.extend(0.15*np.ones(Config.Seperate-10-9))
+            hobs.extend(0.15*np.ones(Config.Seperate-2-2))
 
 
         self.sol2.update_param(TS, XS, YS, ZS, tt, temp_xx, temp_yy, temp_zz, L, Violation)

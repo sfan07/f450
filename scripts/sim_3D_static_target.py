@@ -62,55 +62,10 @@ class Sim2D():
         dt: timestep for discrete model
         order: approximation order for crazyflie dynamics, default is 2
         '''
-        # full state is [x,y,vx,vy,roll,pitch,roll_dot,pitch_dot]
-        # assume second order approximation
-        # A = np.zeros([8,8]) 
-        # A[0,2], A[1,3] = 1, 1
-        # A[2,5], A[3,4] = 9.81*np.pi/180, -9.81*np.pi/180 
-        # A[4,6], A[5,7] = 1, 1
-        # A[6,4], A[7,5] = -37.2808, -37.2808
-        # A[6,6], A[7,7] = -8.1488, -8.1488
-
-        # B = np.vstack((np.zeros([6,2]), np.diag([37.2808, 37.2808])))
-        
-        # # handle zero and first order cases
-        # if order == 0:
-        #     A = A[0:4,0:4]
-        #     B = np.vstack((np.zeros([2,2]), np.eye(2)))
-    
-        # if order == 1:
-        #     A = A[0:6,0:6]
-        #     A[4,4], A[5,5] = -5.5759, -5.5759
-        #     B = np.vstack((np.zeros([4,2]), np.diag([5.5759, 5.5759])))
-
-        # discretized dynamics
-        # ncols = A.shape[1] + B.shape[1]
-        # H = np.zeros([ncols,ncols])
-        # H[0:A.shape[0],0:A.shape[0]] = A*dt
-        # H[0:B.shape[0],A.shape[0]:] = B*dt
-        # H = expm(H)
-        
-        # self.order = order
         self.num_agents = agent_pos.shape[0]
         self.num_obstacles = 0 if obs_init is None else obs_init.shape[1]
-        # self.num_iter = num_iter
         self.dt = dt
-        # self.A = A
-        # self.B = B
         
-        # self.A_d = H[0:A.shape[0],0:A.shape[0]]
-        # self.B_d = H[0:B.shape[0],A.shape[0]:]
-        # if self.order == 2:
-        #     self.K = np.array([[       0,      10,        0, 21.6188, -2.1450,       0, -0.8598,       0],
-        #                        [     -10,       0, -21.6188,       0,       0, -2.1450,       0, -0.8598]])
-        # elif self.order == 1:
-        #     self.K = np.array([[       0,      10,        0, 17.4568, -0.7527,       0],
-        #                        [     -10,       0, -17.4568,       0,       0, -0.7527]])
-    
-        # self.agent_init = np.copy(agent_init)
-        # self.agent_state = np.copy(agent_init)
-        # self.target_init = np.copy(target_init)
-        # self.target_state = np.copy(target_init)
         self.target_pos = np.copy(target_pos)
         self.agent_pos = np.copy(agent_pos)
         self.agent_pos_next = np.copy(agent_pos)
@@ -225,40 +180,17 @@ class Sim2D():
         look_ahead_num: points for spline interpolation
         look_ahead_dt: dt for spline interpolation
         '''
-        # augment agent and target state with height
-        # self.agent_pos = np.hstack((self.agent_state.T[:,:2], np.zeros((self.num_agents,1)))) # [x,y,0]
-        # self.target_pos = np.hstack((self.target_init.T[:2], h)) #[x,y,height of target]
-
         # get vertex position and vectors
-        # print(self.target_pos)
         self.vertex_pos = self.get_vertices(l)
-        # print(f'after get vertices, is {self.vertex_pos}')
         self.vertex_vec = normalize(self.vertex_pos-self.target_pos, axis = 1, norm = 'l2')
-
-        # height of the agents, starting from 0, each row is [z, vz]
-        #self.agent_h = np.zeros((self.num_agents, 2))
-        self.agent_h = np.column_stack((self.agent_pos[:,2], self.agent_vel[:,2]))
-
-        # spline interpolation parameters 
-        self.look_ahead_num = look_ahead_num 
-        self.look_ahead_dt = look_ahead_dt
-
-        #################################################################
-        # for plotting/verification
-        # self.agent_coords = np.zeros((self.num_agents, self.num_iter, 3))
-        #################################################################
-
-        # self.reached = np.array([False]*self.num_agents)
-        Total_time = 0
-        pso_funccall_time = 0
         agent_input = np.zeros((2, self.num_agents)) #desired [roll, pitch].T
 
-        #for spline interpolation
-        ts = np.zeros((self.look_ahead_num, self.num_agents))
-        xs = np.zeros((self.look_ahead_num, self.num_agents))
-        ys = np.zeros((self.look_ahead_num, self.num_agents))
-        zs = np.zeros((self.look_ahead_num, self.num_agents))
-        look_ahead_pts = np.zeros((self.look_ahead_num+1, self.num_agents, 3))
+        #for spline interpolation 
+        ts = np.zeros((look_ahead_num, self.num_agents))
+        xs = np.zeros((look_ahead_num, self.num_agents))
+        ys = np.zeros((look_ahead_num, self.num_agents))
+        zs = np.zeros((look_ahead_num, self.num_agents))
+        look_ahead_pts = np.zeros((look_ahead_num+1, self.num_agents, 3))
         look_ahead_pts[0] = self.agent_pos[:,:3]   #agent_pos [x,y,z]
 
         collision_input = np.zeros((self.num_agents, 6)) #[x,y,h,vx,vy,vh]
@@ -287,17 +219,14 @@ class Sim2D():
         yy = GlobalBest.Sol.yy
         zz = GlobalBest.Sol.zz
         waypts_pso = np.zeros((self.num_agents,3))
-        for n in range (self.look_ahead_num):    
+        for n in range (look_ahead_num):    
             for j in range (self.num_agents):
                 # get the next waypoint
-                # C = self.rotation_from_axis_angle(axis[j], 0.02*angular_diff[j])
-                # v = C@self.agent_vec[j]/norm(C@self.agent_vec[j])
-                # waypoint = self.target_pos+(d_vertex_target[j]+0.98*radial_diff[j])*v
                 waypoint = np.array([xx[1*n+1+j*Config.Seperate],yy[1*n+1+j*Config.Seperate],zz[1*n+1+j*Config.Seperate]])
                 # clip the height to be between 0.1m and 2.0m
                 # waypoint[-1] = np.clip(waypoint[-1], 0.1, 2.0)
                 # populates look ahead points to be interpolated
-                ts[n, j] = n*self.look_ahead_dt
+                ts[n, j] = n*look_ahead_dt
                 xs[n, j] = waypoint[0]
                 ys[n, j] = waypoint[1]
                 zs[n, j] = waypoint[2]
@@ -322,17 +251,16 @@ class Sim2D():
             ay_interp = vy_interp.derivative()
             az_interp = vz_interp.derivative()
             # pso generated accelns and vels
-            waypt = look_ahead_pts[self.look_ahead_num//2, j] #[x,y,z]
+            waypt = look_ahead_pts[look_ahead_num//2, j] #[x,y,z]
             waypts_pso[j] = waypt
-            vx_pso, vy_pso, vz_pso = vx_interp(self.look_ahead_num//2*self.look_ahead_dt), vy_interp(self.look_ahead_num//2*self.look_ahead_dt), vz_interp(self.look_ahead_num//2*self.look_ahead_dt)
+            vx_pso, vy_pso, vz_pso = vx_interp(look_ahead_num//2*look_ahead_dt), vy_interp(look_ahead_num//2*look_ahead_dt), vz_interp(look_ahead_num//2*look_ahead_dt)
             v_pso[j] = np.array([vx_pso, vy_pso, vz_pso])
-            ax_pso, ay_pso, az_pso = ax_interp(self.look_ahead_num//2*self.look_ahead_dt), ay_interp(self.look_ahead_num//2*self.look_ahead_dt), az_interp(self.look_ahead_num//2*self.look_ahead_dt)
-            # print(f'{waypt} compared with {self.agent_pos[j,0]+vx_pso*self.look_ahead_dt+1/2*ax_pso*self.look_ahead_dt*self.look_ahead_dt} {self.agent_pos[j,1]+vy_pso*self.look_ahead_dt+1/2*ay_pso*self.look_ahead_dt*self.look_ahead_dt} {self.agent_pos[j,2]+vz_pso*self.look_ahead_dt+1/2*az_pso*self.look_ahead_dt*self.look_ahead_dt}')
+            ax_pso, ay_pso, az_pso = ax_interp(look_ahead_num//2*look_ahead_dt), ay_interp(look_ahead_num//2*look_ahead_dt), az_interp(look_ahead_num//2*look_ahead_dt)
             
             agent_input[0, j] = self.agent_ang[j,0] #deg !!!!!!
             agent_input[1, j] = self.agent_ang[j,1]  #deg !!!!!!!!
 
-            if self.agent_h[j, 0] < 0.2:
+            if self.agent_pos[j,2] < 0.2:
                 collision_acc[j, 2] = np.abs(collision_acc[j, 2])
             # # if without collision_acc
             # collision_acc[j,0] = 0
@@ -342,10 +270,7 @@ class Sim2D():
             accy[j] = (max(min(ay_pso+collision_acc[j,1], Config.MaxAcc), -Config.MaxAcc))
             accz[j] = (max(min(ay_pso+collision_acc[j,2], Config.MaxAcc), -Config.MaxAcc))
             acc_xyz = [accx[j], accy[j], accz[j]]
-            # acc = acc_xyz[2]
             downwash_acc[j] = self.get_dw_acc(downwash_flag[j], acc_xyz, neighbors_pos[j], agent_coord[j], agent_input[:2,j])
-            # self.agent_h[j, 0] += self.agent_h[j, 1]*self.look_ahead_dt+(1/2)*acc*self.look_ahead_dt*self.look_ahead_dt-(1/2)*downwash_acc[j]*self.look_ahead_dt*self.look_ahead_dt 
-            # self.agent_h[j, 1] += (acc-downwash_acc[j])*self.look_ahead_dt #IF NEED TO CONSIDER DW_ACC, THEN MIGHT NEED TO ADD DW_ACC ON TOP OF ACC
                 
             # if downwash_acc[j] != 0.0:
             #     print("downwash_accel is",downwash_acc[j])
@@ -353,47 +278,34 @@ class Sim2D():
             #     print("next agent")
         
         acc_total = np.column_stack((accx, accy, accz))   
-        # print(f'acceleration is {acc_total}, accx is {accx}, accy is {accy}, accz is {accz}')
-        vel = self.agent_vel + v_pso+ acc_total*self.look_ahead_dt
+        vel = self.agent_vel + v_pso+ acc_total*look_ahead_dt
         vel[:,0] = np.maximum(np.minimum(vel[:,0], Config.MaxVelo), -Config.MaxVelo)
         vel[:,1] = np.maximum(np.minimum(vel[:,1], Config.MaxVelo), -Config.MaxVelo)
         vel[:,2] = np.maximum(np.minimum(vel[:,2], Config.MaxVelo), -Config.MaxVelo)
         for agent in range(self.num_agents):
-            vel[agent,2] += downwash_acc[agent]*self.look_ahead_dt
-        self.agent_pos_after = self.agent_pos + vel*self.look_ahead_dt
-        # print(f'self.agent_pos is {self.agent_pos} and velocity is {vel}')
-        # print(f'self.agent_pos_after is {self.agent_pos_after}')
-        print(f'assigned vertices is {self.assigned_vertex_pos}')
-        # assigned_vertices = np.hstack(self.assigned_vertex_pos)
-        # assigned_vertices = np.hstack(self.assigned_vertex_pos)
-        # self.vis(i=0)
+            vel[agent,2] += downwash_acc[agent]*look_ahead_dt
+        self.agent_pos_after = self.agent_pos + vel*look_ahead_dt
         return self.agent_pos_after, self.assigned_vertex_pos
         
     def get_dw_acc(self, dw_flag, acc_xyz, neighbors_pos, agent_coord, agent_input):
-        multi = 10
         downwash_acc1 = 0.0
         DEG2RAD = np.pi/180
         pitch = agent_input[1]*DEG2RAD
-
         roll = agent_input[0]*DEG2RAD
-        acc1 = acc_xyz
-        # neighbors_pos = neighbors_pos
-        # agent_coord = agent_coord
-        # A_UAV = np.pi*((1/2)*0.092)**2
         A_UAV = np.pi*((1/2)*Config.droneSideLength)**2
         
         for k in range(len(dw_flag)):
-            a_des = -np.sin(pitch)*acc1[0] + np.cos(pitch)*np.sin(roll)*acc1[1] + np.cos(pitch)*np.cos(roll)*(acc1[2]+9.81)
+            a_des = -np.sin(pitch)*acc_xyz[0] + np.cos(pitch)*np.sin(roll)*acc_xyz[1] + np.cos(pitch)*np.cos(roll)*(acc_xyz[2]+9.81)
             z = neighbors_pos[k][2] - agent_coord[2]
             if dw_flag[k] == 1:
-                print("delta z is ",z)
-                print("a_des is", a_des)
+                # print("delta z is ",z)
+                # print("a_des is", a_des)
                 downwash_acc = 25 * A_UAV / 2 / np.pi * a_des / (z**2)
                 downwash_acc1 += downwash_acc
-                print("downwash_acc is ", downwash_acc)
+                # print("downwash_acc is ", downwash_acc)
                 # print("dw_flag is", dw_flag[k])
 
-        temp = multi*downwash_acc1
+        temp = Config.multi*downwash_acc1
         return temp
         
     def vis(self,iter):
@@ -475,44 +387,8 @@ if __name__ == '__main__':
     if order == 2:
         agent_init = np.zeros((8, 4)) 
     elif order == 1:
-        # agent_init = np.zeros((6, 1)) #case 0 : single agent-single target-no obstacle
-        agent_init = np.zeros((6, 4)) #case 1: 4 agents-single target-no obstacle
+        agent_init = np.zeros((6, 4)) 
 
-    # agent_init[:2, 0] = -1.5, 0.3
-    # agent_init[:2, 1] = -1.5, 0.0
-    # agent_init[:2, 2] = -1.5, -0.3
-    # agent_init[:2, 3] = -1.5, -0.6
-
-    # agent_init[:2, 0] = -1.0, 0.0
-    # agent_init[:2, 1] = -1.2, 0.0
-    # agent_init[:2, 2] = -1.4, 0.0
-    # agent_init[:2, 3] = -1.6, 0.0
-
-    # case1: 1 agent wo obstacle
-    # agent_init[:2, 0] =  1.5, 1.5 
-    # case2: 4 agent wo obstacle
-    # agent_init[:2, 0] =  1.5, 1.5 
-    # agent_init[:2, 1] = -1.5, 1.5
-    # agent_init[:2, 2] =  1.5, -1.5
-    # agent_init[:2, 3] = -1.0, -1.0
-    # case3: 4 agent w/ 3 obstacles
-    # agent_init[:2, 0] =  1.5, 1.5 
-    # agent_init[:2, 1] = -1.5, 1.5
-    # agent_init[:2, 2] =  1.5, -1.5
-    # agent_init[:2, 3] = -1.0, -1.0
-    # case4: 4 agent w/ 7 obstacles
-    # agent_init[:2, 0] =  1.5, 1.5 
-    # agent_init[:2, 1] = -1.5, 1.5
-    # agent_init[:2, 2] =  1.5, -1.5
-    # agent_init[:2, 3] = -1.0, -1.0
-    # case5: 1 agent w 3 moving obstacle
-    # agent_init[:2, 0] =  1.5, 1.5 
-    # case6: 4 agent w/ 3 moving obstacles
-    # agent_init[:2, 0] =  1.5, 1.5 
-    # agent_init[:2, 1] = -1.5, 1.5
-    # agent_init[:2, 2] =  1.5, -1.5
-    # agent_init[:2, 3] = -1.0, -1.0
-    # case7: 4 agent w/ 7 moving obstacles
     agent_init[:2, 0] =  1.5, 1.5
     agent_init[:2, 1] = -1.5, 1.5
     agent_init[:2, 2] =  1.5, -1.5
@@ -520,55 +396,16 @@ if __name__ == '__main__':
     agent_pos = np.hstack((agent_init.T[:,:2],np.zeros((len(agent_init[0]),1))))
     agent_vel = np.zeros((len(agent_init[0]),3))
     agent_acc = np.zeros((len(agent_init[0]),3))
-    # # case 1/2/3/4
+
     target_init = np.array([1.0, 0.5, 0.0, 0.0]).T
     target_pos = np.hstack((target_init.T[:2],1)).reshape(1,3)
     agent_ang = np.zeros((4, 2))
-
-    # case1/2
-    # obs_init = np.zeros((7,1)) 
-    # obs_init[:5,0] = -1.8, -1.8,    2, 0.3, 2 
-    # case3
-    # obs_init = np.zeros((7,3)) 
-    # obs_init[:5,0] = -1.8, -1.8,    2, 0.3, 2 
-    # obs_init[:5,1] =   -1,    0,  1.8, 0.1, 2
-    # obs_init[:5,2] = -0.5,  1.5,    1, 0.5, 2
-    # # case4
-    # obs_init = np.zeros((7,7)) #[xobs, yobs, zobs, robs, hobs, vx, vy]*7
-    # obs_init[:5,0] = -1.8, -1.8,    2, 0.3, 2 
-    # obs_init[:5,1] =   -1,    0,  1.8, 0.1, 2
-    # obs_init[:5,2] = -0.5,  1.5,    1, 0.5, 2
-    # obs_init[:5,3] =    0, -0.5,  0.5, 0.2, 2
-    # obs_init[:5,4] =  0.5,  1.5,  1.5, 0.4, 2
-    # obs_init[:5,5] =  1.7, -0.5,  1.3, 0.5, 2
-    # obs_init[:5,6] =    0,   -2,    2, 0.5, 2
-    # case5
-    # obs_init = np.zeros((7,3)) 
-    # obs_init[:7,0] = -1.8, -1.8,    2, 0.3, 2 , 0.1, 0.2
-    # obs_init[:7,1] =   -1,    0,  1.8, 0.1, 2 , 0.1, -0.1
-    # obs_init[:7,2] = -0.5,  1.5,    1, 0.5, 2 , 0.1, -0.05  
-    # case6
-    # obs_init = np.zeros((7,3)) 
-    # obs_init[:7,0] = -1.8, -1.8,    2, 0.3, 2 , 0.1, 0.2
-    # obs_init[:7,1] =   -1,    0,  1.8, 0.1, 2 , 0.1, -0.1
-    # obs_init[:7,2] = -0.5,  1.5,    1, 0.5, 2 , 0.1, -0.5 
-    # # case4
-    # obs_init = np.zeros((7,7)) #[xobs, yobs, zobs, robs, hobs, vx, vy]*7
-    # obs_init[:7,0] = -1.8, -1.8,    2, 0.3, 2 , 0.1, 0.2
-    # obs_init[:7,1] =   -1,    0,  1.8, 0.1, 2 , 0.1, -0.1
-    # obs_init[:7,2] = -0.5,  1.5,    1, 0.5, 2 , 0.1, -0.5
-    # obs_init[:7,3] =    0, -0.5,  0.5, 0.2, 2 , 0.1, 0.2
-    # obs_init[:7,4] =  0.5,  1.5,  1.5, 0.4, 2 , 0.1, -0.1
-    # obs_init[:7,5] =  1.7, -0.5,  1.3, 0.5, 2 , 0.1, -0.5
-    # obs_init[:7,6] =    0,   -2,    2, 0.5, 2 , 0.1, -0.1
    
     xmin, xmax = -2, 2
     ymin, ymax = -2, 2
     zmin, zmax = 0, 2
     
-    # sim_2D = Sim2D(agent_init, target_init, obs_init, num_iter = 200, dt = 0.5, order = order)
     sim_2D = Sim2D(agent_pos, agent_vel, agent_acc, agent_ang, target_pos, obs_init=None, dt = 0.5)
-    # sim_2D = Sim2D(agent_init, target_init, obs_init, num_iter = 1700, dt = 0.01, order = order)
     start = time.time()
     sim_2D.run(Config.l, Config.look_ahead_num, Config.look_ahead_dt)
     end = time.time()

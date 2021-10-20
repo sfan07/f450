@@ -72,6 +72,7 @@ class PSO_PathPlan(object):
         self.cur_vel = np.asarray(msg.cur_velocity)
         
         self.des_pos = np.asarray(msg.des_position)
+        # print(f'received back the pathplan msg, des_pos is {self.des_pos} ')
         self.cur_acc = np.asarray(msg.cur_acceleration)
         self.cur_ang = np.asarray(msg.cur_angles)
         
@@ -116,6 +117,7 @@ class PSO_PathPlan(object):
                 if (self.uavs_id[i] and len(self.agent_pos) != self.agents_num):
                     if j == 0:
                         self.target_pos.append(np.array([self.cur_pos[i*3], self.cur_pos[i*3+1], self.cur_pos[i*3+2]],dtype='float64'))
+                        print(self.target_pos)
                         j += 1
                     else:
                         self.agent_pos.append(np.array([self.cur_pos[i*3], self.cur_pos[i*3+1], self.cur_pos[i*3+2]],dtype='float64'))
