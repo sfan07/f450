@@ -93,17 +93,42 @@ class Config:
     '''pso parameters'''
     MaxIt_pso = 20 # Maximum Number of Iterations
     nPop_pso = 20 # population size (swarm size)
+    # nPop_pso = 100 # population size (swarm size)
     w_pso = 1 # inertia weight
     wdamp_pso = 0.98 # inertia weight damping ratio
     c1_pso = 1.5 # personal learning coefficient
     c2_pso = 2 # Global Learning Coefficient
     alpha_pso = 0.1 #adjusting velocity limits
+    beta = 500 #z = sol.L*(1+Config.beta*sol.Violation)
 
     '''accl limits and vel limits'''
     MaxAcc, MaxVelo = 10.0, 10.0 
 
     '''adjust this number to influence hunting speed, must larger than 20'''
+    # Seperate = 20
+    # Seperate = 30
+    # Seperate = 10
     Seperate = 7
+    # Seperate = 15
 
     '''adjust downwash acceleration, multi*dw_acc'''
     multi = 10
+
+    # '''One against one'''
+    # agentNo = 1
+
+    '''Four against one'''
+    agentNo = 4
+
+    '''None obstacle case'''
+    # obs_init = None #[x,y,z,r,h,vx,vy].T
+
+    # '''one obstacle case'''
+    obs_init = np.zeros((7,1)) #[x,y,z,r,h,vx,vy].T
+    obs_init[:5,0] = -1.8, -1.8,    20, 0.5, 20 
+
+    # '''three obstacles case'''
+    # obs_init = np.zeros((7,3)) #[x,y,z,r,h,vx,vy].T
+    # obs_init[:5,0] = -1.8, -1.8,    20, 0.5, 20 
+    # obs_init[:5,1] = 1.8, 1.8,    20, 0.5, 20 
+    # obs_init[:5,2] = 1.8, -1.8,    20, 0.5, 20 

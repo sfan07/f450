@@ -10,7 +10,7 @@ from sklearn.preprocessing import normalize
 from scipy.interpolate import UnivariateSpline
 from collision_avoidance import CollisionAvoidance
 import math
-from pso_updatingLocation import path_generation
+from pso_updatingLocation_s import path_generation
 from numpy.core.defchararray import title
 from scipy.interpolate import InterpolatedUnivariateSpline
 import matplotlib.cm as cm

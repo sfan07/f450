@@ -82,6 +82,7 @@ class Best():
         self.Velocity = Velocity()
         # self.Cost = math.inf
         self.Cost = np.Inf
+        # self.Cost = np.full((Config.agentNo,1), np.inf) # agent1:[0], agent nth : [n-1]
         self.PathLength = []
         self.Sol = sol2()
 
@@ -98,10 +99,11 @@ class GlobalBest():
     def __init__(self):
         # self.Cost = math.inf
         self.Cost = np.Inf 
-        self.PathLength = []
+        # self.Cost = np.full((Config.agentNo,1), np.inf) # agent1:[0], agent nth : [n-1] #check, not used
+        self.PathLength = [] #check, not used
         self.Best = Best()
-        self.Position = Position()
-        self.Sol = sol2()
+        self.Position = Position() #check, not used
+        self.Sol = sol2() #check, not used
 
 class sol2():
     def __init__(self):
@@ -120,7 +122,7 @@ class sol2():
         self.Violation = []
         self.IsFeasible = (self.Violation==0)
 
-    def update_param(self, TS, XS, YS, ZS, tt, xx, yy, zz, L, Violation):
+    def update_param(self, TS, XS, YS, ZS, tt, xx, yy, zz, L, L_each, Violation, Violation_each):
         self.TS = TS
         self.XS = XS
         self.YS = YS
@@ -133,8 +135,10 @@ class sol2():
         # self.dy = dy
         # self.dz = dz
         self.L = L 
+        self.L_each = L_each
         self.Violation = Violation
-        self.IsFeasible = (self.Violation==0)
+        self.Violation_each = Violation_each
+        self.IsFeasible = (self.Violation_each==0)
 
 class path_generation():
     '''
@@ -165,13 +169,11 @@ class path_generation():
         '''
         This function generates path waypoints for agents
         '''
-
         # droneSideLenght = 0.15
         # droneSideLenght = 0 # point
         droneSideLength = Config.droneSideLength # point
         # obstBuffer = droneSideLenght*1.5
         obstBuffer = droneSideLength*2
-
         # Number of intermediate way points
         # n = max(math.ceil(nObs/5)*3, 3)
         n = 3
@@ -216,6 +218,7 @@ class path_generation():
         
         # Initialize Global Best
         self.GlobalBest.Best.Cost = np.Inf
+        # self.GlobalBest.Best.Cost = np.full((Config.agentNo,1), np.inf) # agent1:[0], agent nth : [n-1]
 
         # Create Particles Matrix
         self.particle = {} #empty_particle()
@@ -230,6 +233,43 @@ class path_generation():
         sigma_z = np.matmul(sigma[2].reshape((self.model.nUAVs,1)),np.ones((1,self.model.n)))
         i_picked = 0
         self.inin = 0
+        # Check and get rid of no-violation straight-line agents
+        RidofAgentNo = []
+        RidofBestsolution = []
+        position = Position()
+        for UAV in range(self.model.nUAVs):
+            #straight line from source to destination
+            xx = np.linspace(self.model.xs[UAV],self.model.xt[UAV],self.model.n+2)
+            yy = np.linspace(self.model.ys[UAV],self.model.yt[UAV],self.model.n+2)
+            zz = np.linspace(self.model.zs[UAV],self.model.zt[UAV],self.model.n+2)
+            position.x.extend((xx[1:-1]).tolist())
+            position.y.extend((yy[1:-1]).tolist())
+            position.z.extend((zz[1:-1]).tolist())
+
+        [cost, pathLength, sol] = self.MyCost(position,self.model,elminate=1) # eliminate=1 to output the each UAV's data
+        for UAV in range(self.model.nUAVs):    
+            if sol.IsFeasible[UAV]:
+                # then this agent are following a straight line, so it can be get rid of from pso
+                RidofAgentNo.extend(UAV)
+                xs = np.delete(xs,UAV)
+                xt = np.delete(xt,UAV)
+                ys = np.delete(ys,UAV)
+                yt = np.delete(yt,UAV)
+                zs = np.delete(zs,UAV)
+                zt = np.delete(zt,UAV)
+                xobs = np.append(xobs,sol.xs[UAV])
+                yobs = np.append(yobs,sol.ys[UAV])
+                zobs = np.append(zobs,sol.zs[UAV])
+                robs = np.append(robs,Config.droneSideLength/2)
+                hobs = np.append(hobs,Config.droneSideLength)
+                RidofBestsolution.extend(sol.xx[])
+                [xx[1*n+1+j*Config.Seperate]
+                xx = GlobalBest.Sol.xx
+                
+        self.model.update_param(xobs, yobs, zobs, robs, hobs, nObs, n, xmin, xmax, ymin, ymax, zmin, zmax, obstBuffer, xs, ys, zs, xt, yt, zt)
+            
+
+
         # PSO Initialization
         for i in range(nPop):
             self.particle[i] = empty_particle()
@@ -245,13 +285,14 @@ class path_generation():
                     self.particle[i].Position.x.extend((xx[1:-1]).tolist())
                     self.particle[i].Position.y.extend((yy[1:-1]).tolist())
                     self.particle[i].Position.z.extend((zz[1:-1]).tolist())
+            
             self.particle[i].Velocity.x = np.zeros((1,VarSize[1]*self.model.nUAVs))[0]+0.5 #[[0.,0.,0.]][0] = [0,0,0]
             self.particle[i].Velocity.y = np.zeros((1,VarSize[1]*self.model.nUAVs))[0]+0.5
             self.particle[i].Velocity.z = np.zeros((1,VarSize[1]*self.model.nUAVs))[0]+0.5
 
             # Evaluation
             # print(f'the {i}th particle initilization')
-            [self.particle[i].Cost, self.particle[i].PathLength, self.particle[i].Sol] = self.MyCost(self.particle[i].Position,self.model)
+            [self.particle[i].Cost, self.particle[i].PathLength, self.particle[i].Sol] = self.MyCost(self.particle[i].Position,self.model,elminate=0)
             # print(f'Now drawing the {i}th particle')
             # self.PlotSolution(self.particle[i].Sol, self.model,self.MaxIt-1)
             
@@ -358,7 +399,7 @@ class path_generation():
                 self.temp_particle.Position.y = self.particle[i].Position.y.tolist().copy()
                 self.temp_particle.Position.z = self.particle[i].Position.z.tolist().copy()
                 # Evaluation
-                [self.particle[i].Cost, self.particle[i].PathLength, self.particle[i].Sol] = self.MyCost(self.temp_particle.Position, self.model)
+                [self.particle[i].Cost, self.particle[i].PathLength, self.particle[i].Sol] = self.MyCost(self.temp_particle.Position, self.model,elminate=0)
                 # print(f'{self.inin} next particles {i}')
                 # Update Personal Best
                 if (self.particle[i].Cost <self.particle[i].Best.Cost):
@@ -480,15 +521,17 @@ class path_generation():
             plt.close()
 
 
-    def ParseSolution(self, sol1, model):
+    def ParseSolution(self, sol1, model, elminate):
 
         nUAVs = model.nUAVs
         nVar = model.n
         Violation = 0
+        Violation_each = np.zeros((nUAVs,1))
         XS = []
         YS = []
         ZS = []
         L = 0
+        L_each = 0
         temp_xx = []
         temp_yy = []
         temp_zz = []
@@ -508,6 +551,7 @@ class path_generation():
         y_temp = np.hstack((model.ys.reshape((nUAVs,1)), y)) 
         y_temp = np.hstack((y_temp, model.yt.reshape((nUAVs,1)))) #[ys, y..., yt]*nUAVs
         YS = np.hstack((y_temp)) #if wanna plot determined points
+
         z = np.array(sol1.z).reshape((nUAVs,nVar))
         z_temp = np.hstack((model.zs.reshape((nUAVs,1)), z)) 
         z_temp = np.hstack((z_temp, model.zt.reshape((nUAVs,1)))) #[zs, z..., zt]*nUAVs
@@ -531,6 +575,9 @@ class path_generation():
         temp_zz = np.hstack(xxyyzz[2])
 
         L = np.sum(np.sqrt(X**2+Y**2+Z**2))
+        L_each = np.sum(np.sqrt(X**2+Y**2+Z**2), axis=1)
+        if len(L_each) == model.nUAVs:
+            print(f'path length has right computation')
 
         for UAV in range(nUAVs):
             xx = xxyyzz[0,UAV]
@@ -539,7 +586,6 @@ class path_generation():
             nobs = len(xobs) # number of obstacles
             
             for k in range(nobs):
-
                 xx_filtered = []
                 yy_filtered = []
 
@@ -555,31 +601,31 @@ class path_generation():
                 zero_array = np.zeros_like(temp)
                 v = np.maximum(temp,zero_array)
                 if (len(v)!=0):
+                    Violation_each[UAV] = Violation[UAV] +np.mean(v)
                     Violation = Violation + np.mean(v)
                     # if Violation != 0:
                         # print(f'obstacle-avoidance is {Violation} of UAV {UAV} and obstacle {k}')
                 if (self.inin == 1):
                     print(f'{k}th obstacle radius is {robs[k]} and d is {d} and violation array is {v}')
-                    print(f'obstacle-avoidance is {Violation} of UAV {UAV} and obstacle {k}')
+                    print(f'obstacle-avoidance is {Violation_each[UAV]} of UAV {UAV} and obstacle {k}')
                 if(math.isnan(Violation)):
                     print("STOP")
-                
-            # xobs.extend(xx.tolist()[9:(Config.Seperate-10)]) #Seperate was 100 
-            xobs.extend(xx.tolist()[2:(Config.Seperate-2)])
-            # yobs.extend(yy.tolist()[9:(Config.Seperate-10)])
-            yobs.extend(yy.tolist()[2:(Config.Seperate-2)])
-            # zobs.extend((zz[9:90]+(self.model.obstBuffer+0.15)).tolist()) # agent viewed as cylinderical shape
-            # zobs.extend((zz[9:(Config.Seperate-10)]).tolist())
-            zobs.extend((zz[2:(Config.Seperate-2)]).tolist())
-            # robs.extend((self.model.obstBuffer+0.15)*np.ones(81)) # agent viewed as cylinderical shape
-            robs.extend(0.15/2*np.ones(Config.Seperate-2-2)) #agent side length = 0.15m
-            # robs.extend(0.15/2*np.ones(Config.Seperate-10-9)) #agent side length = 0.15m
-            # hobs.extend((self.model.obstBuffer+0.15)*2*np.ones(81)) # agent viewed as cylinderical shape
-            # hobs.extend(0.15*np.ones(Config.Seperate-10-9))
-            hobs.extend(0.15*np.ones(Config.Seperate-2-2))
+            if (elminate!=1):
+                # xobs.extend(xx.tolist()[9:(Config.Seperate-10)]) #Seperate was 100 
+                xobs.extend(xx.tolist()[2:(Config.Seperate-2)])
+                # yobs.extend(yy.tolist()[9:(Config.Seperate-10)])
+                yobs.extend(yy.tolist()[2:(Config.Seperate-2)])
+                # zobs.extend((zz[9:90]+(self.model.obstBuffer+0.15)).tolist()) # agent viewed as cylinderical shape
+                # zobs.extend((zz[9:(Config.Seperate-10)]).tolist())
+                zobs.extend((zz[2:(Config.Seperate-2)]).tolist())
+                # robs.extend((self.model.obstBuffer+0.15)*np.ones(81)) # agent viewed as cylinderical shape
+                robs.extend(Config.droneSideLength/2*np.ones(Config.Seperate-2-2)) #agent side length = Config.droneSideLength
+                # robs.extend(0.15/2*np.ones(Config.Seperate-10-9)) #agent side length = 0.15m
+                # hobs.extend((self.model.obstBuffer+0.15)*2*np.ones(81)) # agent viewed as cylinderical shape
+                # hobs.extend(0.15*np.ones(Config.Seperate-10-9))
+                hobs.extend(Config.droneSideLength*np.ones(Config.Seperate-2-2))
 
-
-        self.sol2.update_param(TS, XS, YS, ZS, tt, temp_xx, temp_yy, temp_zz, L, Violation)
+        self.sol2.update_param(TS, XS, YS, ZS, tt, temp_xx, temp_yy, temp_zz, L, L_each, Violation, Violation_each)
         sol = self.sol2
 
         return sol
@@ -598,11 +644,15 @@ class path_generation():
         return sol
 
 
-    def MyCost(self, sol1, model):
-        sol = self.ParseSolution(sol1,model) #class sol2()
+    def MyCost(self, sol1, model, elminate):
+        sol = self.ParseSolution(sol1,model, elminate) #class sol2()
         # beta = 10
-        z = sol.L*(1+Config.beta*sol.Violation)
-        zl = sol.L
+        if (elminate==1):
+            z = sol.L_each*(1+Config.beta*sol.Violation_each)
+            zl = sol.L_each
+        else:
+            z = sol.L*(1+Config.beta*sol.Violation)
+            zl = sol.L
 
         return [z, zl, sol]
 

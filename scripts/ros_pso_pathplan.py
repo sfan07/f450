@@ -27,7 +27,8 @@ from Config import Config
 import rospy
 from geometry_msgs.msg import PoseStamped, Twist
 from outdoor_gcs.msg import PathPlan
-import sim_3D_static_target
+import sim_3D_static_target as sim_3D_static_target
+# import sim_3D_static_target_s as sim_3D_static_target
 
 
 class PSO_PathPlan(object):
@@ -35,6 +36,7 @@ class PSO_PathPlan(object):
     def __init__(self, dt):
 
         print("pso!!")
+        
 
         self.dt = dt
         self.change_time = rospy.Time.now()
@@ -105,6 +107,12 @@ class PSO_PathPlan(object):
         self.pathplan_pub.publish(self.pathplan_pub_msg_nxt)
 
     def iteration(self, event):
+        # #obstacle case testing
+        # self.obs_init = np.zeros((7,1)) #[x,y,z,r,h,vx,vy].T
+        # self.obs_init[:5,0] = -1.8, -1.8,    20, 0.3, 20  
+        self.obs_init = Config.obs_init
+        # if self.obs_init.any() != None:
+        #     print("with obstacle!!!")
         self.agent_pos = []
         self.agent_vel = []
         self.agent_acc = []
@@ -132,13 +140,14 @@ class PSO_PathPlan(object):
             self.agent_vel = np.array(self.agent_vel).reshape(len(self.agent_pos),3)
             self.agent_acc = np.array(self.agent_acc).reshape(len(self.agent_pos),3)
             self.agent_ang = np.array(self.agent_ang).reshape(len(self.agent_pos),3)
-            self.sim = sim_3D_static_target.Sim2D(self.agent_pos, self.agent_vel, self.agent_acc, self.agent_ang, self.target_pos, obs_init=None, dt = 0.5)
+            # self.sim = sim_3D_static_target.Sim2D(self.agent_pos, self.agent_vel, self.agent_acc, self.agent_ang, self.target_pos, obs_init=None, dt = 0.5)
+            self.sim = sim_3D_static_target.Sim2D(self.agent_pos, self.agent_vel, self.agent_acc, self.agent_ang, self.target_pos, self.obs_init, dt = 0.5)
             agent_nxt, agent_assigned_vertices = self.sim.run(Config.l, Config.look_ahead_num, Config.look_ahead_dt)
 
             targetskipped = False
             
             for agent in range(self.max_agents_num):
-                print(f'next waypoint agent_nxt[0] is {agent_nxt[0]}')
+                # print(f'next waypoint agent_nxt[0] is {agent_nxt[0]}')
                 if (self.uavs_id[agent]):
                     if (targetskipped == False):
                         targetskipped = True
