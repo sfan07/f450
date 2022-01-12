@@ -84,7 +84,7 @@ class Sim2D():
         self.xvobs = None if obs_init is None else self.obs_init[5,:self.num_obstacles]
         self.yvobs = None if obs_init is None else self.obs_init[6,:self.num_obstacles]
         self.nObs = 0 if obs_init is None else len(self.xobs)
-        self.xmin, self.xmax, self.ymin, self.ymax, self.zmin, self.zmax = -10,10, -10, 10, 0, 10
+        self.xmin, self.xmax, self.ymin, self.ymax, self.zmin, self.zmax = Config.x_min,Config.x_max, Config.y_min, Config.y_max, Config.z_min, Config.z_max
         c1_alp = 3 #3
         c2_alp = 1
         d = 0.4

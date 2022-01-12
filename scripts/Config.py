@@ -2,7 +2,7 @@ import os
 import re
 import numpy as np
 import time
-from termcolor import colored
+# from termcolor import colored
 
 
 class Config:
@@ -108,7 +108,9 @@ class Config:
     # Seperate = 20
     # Seperate = 30
     # Seperate = 10
-    Seperate = 7
+    # Seperate = 7
+    # Seperate = 4
+    Seperate = 6
     # Seperate = 15
 
     '''adjust downwash acceleration, multi*dw_acc'''
@@ -121,14 +123,35 @@ class Config:
     agentNo = 4
 
     '''None obstacle case'''
-    # obs_init = None #[x,y,z,r,h,vx,vy].T
+    obs_init = None #[x,y,z,r,h,vx,vy].T
 
     # '''one obstacle case'''
-    obs_init = np.zeros((7,1)) #[x,y,z,r,h,vx,vy].T
-    obs_init[:5,0] = -1.8, -1.8,    20, 0.5, 20 
+    # obs_init = np.zeros((7,1)) #[x,y,z,r,h,vx,vy].T
+    # obs_init[:5,0] = -1.8, -1.8,    20, 0.5, 20 
 
     # '''three obstacles case'''
     # obs_init = np.zeros((7,3)) #[x,y,z,r,h,vx,vy].T
     # obs_init[:5,0] = -1.8, -1.8,    20, 0.5, 20 
     # obs_init[:5,1] = 1.8, 1.8,    20, 0.5, 20 
     # obs_init[:5,2] = 1.8, -1.8,    20, 0.5, 20 
+
+ # Parameters for the path planner from Jacky's path planner algorithm
+# planner:
+    x_min=-10        # float, minimum x value in m for the planner
+    x_max=10         # float, maximum x value in m for the planner
+    y_min=-10        # float, minimum y value in m for the planner
+    y_max=10         # float, maximum y value in m for the planner
+    z_min= 0         # float, minimum z value in m for the planner
+    z_max=10         # float, maximum z value in m for the planner
+    dx=0.1       # float, planner discretization step in x
+    dy=0.1       # float, planner discretization step in y
+    dz=0.1       # float, planner discretization step in z
+    dt=0.1       # float, planner discretization step in t
+    horizon=25        # float, amount of time to plan ahead in s
+    window=5         # float, window size/amount of time to consider other agents
+    j_t=0.2       # float, cost of stepping in time
+    j_s=1         # float, cost of stepping in space
+    obs_padding=0.0       # float, padding distance to add to obstacle radius
+    d_replan=0.25      # float, distance error of target/obstacle to trigger replanning
+    v_replan=0.1       # float, velocity error of target/obstacle to trigger replanning
+    t_replan =6         # float, time difference from t_max to trigger replanning   
